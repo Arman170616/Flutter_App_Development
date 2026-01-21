@@ -1,184 +1,163 @@
 import 'package:flutter/material.dart';
+import 'package:math_expressions/math_expressions.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const CalculatorApp());
 }
 
-/* =========================
-   APP ROOT WITH THEME
-========================= */
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  bool isDark = false;
+class CalculatorApp extends StatelessWidget {
+  const CalculatorApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: isDark ? ThemeData.dark() : ThemeData.light(),
-      home: Calculator(
-        isDark: isDark,
-        onToggleTheme: () {
-          setState(() {
-            isDark = !isDark;
-          });
-        },
-      ),
+      home: CalculatorScreen(),
     );
   }
 }
 
-/* =========================
-   CALCULATOR PAGE
-========================= */
-class Calculator extends StatefulWidget {
-  final bool isDark;
-  final VoidCallback onToggleTheme;
-
-  const Calculator({
-    super.key,
-    required this.isDark,
-    required this.onToggleTheme,
-  });
+class CalculatorScreen extends StatefulWidget {
+  const CalculatorScreen({super.key});
 
   @override
-  State<Calculator> createState() => _CalculatorState();
+  State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
-class _CalculatorState extends State<Calculator> {
-  final TextEditingController num1Controller = TextEditingController();
-  final TextEditingController num2Controller = TextEditingController();
+class _CalculatorScreenState extends State<CalculatorScreen> {
+  String expression = '';
+  String result = '0';
 
-  String result = "";
-
-  void calculate(String operation) {
-    double? a = double.tryParse(num1Controller.text);
-    double? b = double.tryParse(num2Controller.text);
-
-    if (a == null || b == null) {
-      setState(() {
-        result = "Please enter valid numbers";
-      });
-      return;
-    }
-
-    if (operation == "/" && b == 0) {
-      setState(() {
-        result = "Cannot divide by zero";
-      });
-      return;
-    }
-
+  void onTap(String value) {
     setState(() {
-      switch (operation) {
-        case "+":
-          result = "Result: ${a + b}";
-          break;
-        case "-":
-          result = "Result: ${a - b}";
-          break;
-        case "*":
-          result = "Result: ${a * b}";
-          break;
-        case "/":
-          result = "Result: ${a / b}";
-          break;
+      if (value == 'AC') {
+        expression = '';
+        result = '0';
+      } else if (value == '⌫') {
+        if (expression.isNotEmpty) {
+          expression = expression.substring(0, expression.length - 1);
+        }
+      } else if (value == '=') {
+        calculate();
+      } else {
+        expression += value;
       }
     });
+  }
+
+  void calculate() {
+    try {
+      Parser p = Parser();
+      Expression exp = p.parse(
+        expression
+            .replaceAll('×', '*')
+            .replaceAll('÷', '/'),
+      );
+
+      ContextModel cm = ContextModel();
+      double eval = exp.evaluate(EvaluationType.REAL, cm);
+
+      result = eval.toString();
+    } catch (e) {
+      result = 'Error';
+    }
+  }
+
+  Widget btn(String text,
+      {Color bg = const Color(0xFF3A3A3A),
+        Color fg = Colors.white,
+        int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(40),
+            ),
+            padding: const EdgeInsets.all(22),
+          ),
+          onPressed: () => onTap(text),
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 24, color: fg),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Calculator App with Device"),
-        actions: [
-          IconButton(
-            icon: Icon(
-              widget.isDark ? Icons.light_mode : Icons.dark_mode,
-            ),
-            onPressed: widget.onToggleTheme,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.black,
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Input 1
-            TextField(
-              controller: num1Controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Enter first number",
-                border: OutlineInputBorder(),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                alignment: Alignment.bottomRight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      expression,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      result,
+                      style: const TextStyle(
+                        fontSize: 48,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 15),
-
-            // Input 2
-            TextField(
-              controller: num2Controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Enter second number",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
 
             // Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Column(
               children: [
-                ElevatedButton(
-                  onPressed: () => calculate("+"),
-                  child: const Text("+"),
-                ),
-                ElevatedButton(
-                  onPressed: () => calculate("-"),
-                  child: const Text("-"),
-                ),
-                ElevatedButton(
-                  onPressed: () => calculate("*"),
-                  child: const Text("×"),
-                ),
-                ElevatedButton(
-                  onPressed: () => calculate("/"),
-                  child: const Text("÷"),
-                ),
+                Row(children: [
+                  btn('AC', bg: Colors.grey, fg: Colors.black),
+                  btn('⌫', bg: Colors.grey, fg: Colors.black),
+                  btn('%', bg: Colors.grey, fg: Colors.black),
+                  btn('÷', bg: Colors.orange),
+                ]),
+                Row(children: [
+                  btn('7'),
+                  btn('8'),
+                  btn('9'),
+                  btn('×', bg: Colors.orange),
+                ]),
+                Row(children: [
+                  btn('4'),
+                  btn('5'),
+                  btn('6'),
+                  btn('-', bg: Colors.orange),
+                ]),
+                Row(children: [
+                  btn('1'),
+                  btn('2'),
+                  btn('3'),
+                  btn('+', bg: Colors.orange),
+                ]),
+                Row(children: [
+                  btn('0', flex: 2),
+                  btn('.'),
+                  btn('=', bg: Colors.orange),
+                ]),
               ],
-            ),
-
-            const SizedBox(height: 30),
-
-            // Result Card
-            Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  result.isEmpty
-                      ? "Result will appear here"
-                      : result,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
             ),
           ],
         ),
