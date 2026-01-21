@@ -97,7 +97,7 @@ class _CalculatorState extends State<Calculator> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Calculator App"),
+        title: const Text("Calculator App with Device"),
         actions: [
           IconButton(
             icon: Icon(
