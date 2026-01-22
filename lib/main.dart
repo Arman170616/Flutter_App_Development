@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
+import 'bmi_screen.dart';
 
 void main() {
   runApp(const CalculatorApp());
@@ -49,9 +50,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     try {
       Parser p = Parser();
       Expression exp = p.parse(
-        expression
-            .replaceAll('×', '*')
-            .replaceAll('÷', '/'),
+        expression.replaceAll('×', '*').replaceAll('÷', '/'),
       );
 
       ContextModel cm = ContextModel();
@@ -93,6 +92,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.fitness_center, color: Colors.orange),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BmiScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+
       body: SafeArea(
         child: Column(
           children: [
