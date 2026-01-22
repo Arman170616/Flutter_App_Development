@@ -1,22 +1,67 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:math_expressions/math_expressions.dart';
-import 'bmi_screen.dart';
 
 void main() {
-  runApp(const CalculatorApp());
+  runApp(const MyApp());
 }
 
-class CalculatorApp extends StatelessWidget {
-  const CalculatorApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: CalculatorScreen(),
+      home: HomeScreen(),
     );
   }
 }
+
+// ================= HOME SCREEN (Calculator + BMI Switch) =================
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int index = 0;
+
+  final pages = const [
+    CalculatorScreen(),
+    BmiScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: pages[index],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        backgroundColor: Colors.black,
+        selectedItemColor: Colors.orange,
+        unselectedItemColor: Colors.grey,
+        onTap: (i) => setState(() => index = i),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calculate),
+            label: "Calculator",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.monitor_weight),
+            label: "BMI",
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ================= CALCULATOR APP =================
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -52,10 +97,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       Expression exp = p.parse(
         expression.replaceAll('×', '*').replaceAll('÷', '/'),
       );
-
       ContextModel cm = ContextModel();
       double eval = exp.evaluate(EvaluationType.REAL, cm);
-
       result = eval.toString();
     } catch (e) {
       result = 'Error';
@@ -92,22 +135,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.fitness_center, color: Colors.orange),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const BmiScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -121,10 +148,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   children: [
                     Text(
                       expression,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 28, color: Colors.grey),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -139,8 +163,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 ),
               ),
             ),
-
-            // Buttons
             Column(
               children: [
                 Row(children: [
@@ -176,6 +198,170 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ================= BMI APP + HISTORY =================
+
+class BmiScreen extends StatefulWidget {
+  const BmiScreen({super.key});
+
+  @override
+  State<BmiScreen> createState() => _BmiScreenState();
+}
+
+class _BmiScreenState extends State<BmiScreen> {
+  double height = 170;
+  double weight = 65;
+  double bmi = 0;
+  String status = "";
+
+  List<Map<String, dynamic>> bmiHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadHistory();
+  }
+
+  Future<void> loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('bmi_history');
+    if (data != null) {
+      setState(() {
+        bmiHistory = List<Map<String, dynamic>>.from(jsonDecode(data));
+      });
+    }
+  }
+
+  Future<void> saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('bmi_history', jsonEncode(bmiHistory));
+  }
+
+  void calculateBMI() {
+    setState(() {
+      double h = height / 100;
+      bmi = weight / (h * h);
+
+      if (bmi < 18.5) {
+        status = "Underweight";
+      } else if (bmi < 25) {
+        status = "Normal";
+      } else if (bmi < 30) {
+        status = "Overweight";
+      } else {
+        status = "Obese";
+      }
+
+      bmiHistory.insert(0, {
+        "bmi": bmi.toStringAsFixed(2),
+        "status": status,
+        "height": height.toStringAsFixed(0),
+        "weight": weight.toStringAsFixed(0),
+      });
+
+      saveHistory();
+    });
+  }
+
+  Color getStatusColor() {
+    if (bmi < 18.5) return Colors.blue;
+    if (bmi < 25) return Colors.green;
+    if (bmi < 30) return Colors.orange;
+    return Colors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("BMI Calculator"),
+        backgroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            sliderCard("Height (cm)", height, 100, 220,
+                    (v) => setState(() => height = v)),
+            const SizedBox(height: 20),
+            sliderCard("Weight (kg)", weight, 30, 150,
+                    (v) => setState(() => weight = v)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding:
+                const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+              ),
+              onPressed: calculateBMI,
+              child: const Text("Calculate BMI", style: TextStyle(fontSize: 20)),
+            ),
+            const SizedBox(height: 20),
+            if (bmi > 0)
+              Text(
+                "BMI: ${bmi.toStringAsFixed(2)} ($status)",
+                style: TextStyle(
+                  fontSize: 28,
+                  color: getStatusColor(),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: bmiHistory.length,
+                itemBuilder: (context, index) {
+                  final item = bmiHistory[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "BMI: ${item['bmi']} | ${item['status']} | H:${item['height']} W:${item['weight']}",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget sliderCard(String title, double value, double min, double max,
+      Function(double) onChange) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: Colors.white70)),
+          Text(value.toStringAsFixed(0),
+              style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white)),
+          Slider(
+            value: value,
+            min: min,
+            max: max,
+            onChanged: onChange,
+          ),
+        ],
       ),
     );
   }

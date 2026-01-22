@@ -15,6 +15,34 @@ class _BmiScreenState extends State<BmiScreen> {
   double bmi = 0;
   String status = "";
 
+  List<Map<String, dynamic>> bmiHistory = [];
+
+// Load history
+  Future<void> loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('bmi_history');
+
+    if (data != null) {
+      setState(() {
+        bmiHistory = List<Map<String, dynamic>>.from(jsonDecode(data));
+      });
+    }
+  }
+
+// Save history
+  Future<void> saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('bmi_history', jsonEncode(bmiHistory));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadHistory();
+  }
+
+
+
   void calculateBMI() {
     setState(() {
       double h = height / 100;
@@ -29,8 +57,20 @@ class _BmiScreenState extends State<BmiScreen> {
       } else {
         status = "Obese";
       }
+
+      // Save history
+      bmiHistory.insert(0, {
+        "bmi": bmi.toStringAsFixed(2),
+        "status": status,
+        "height": height.toStringAsFixed(0),
+        "weight": weight.toStringAsFixed(0),
+        "time": DateTime.now().toString(),
+      });
+
+      saveHistory();
     });
   }
+
 
   Color getStatusColor() {
     if (bmi < 18.5) return Colors.blue;
