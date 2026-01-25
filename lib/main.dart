@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ================= HOME SCREEN (Calculator + BMI Switch) =================
+// ================= HOME SCREEN (Calculator + BMI + Age Switch) =================
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final pages = const [
     CalculatorScreen(),
     BmiScreen(),
+    AgeScreen(),
   ];
 
   @override
@@ -54,6 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.monitor_weight),
             label: "BMI",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.cake),
+            label: "Age",
           ),
         ],
       ),
@@ -299,7 +304,8 @@ class _BmiScreenState extends State<BmiScreen> {
                 const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               onPressed: calculateBMI,
-              child: const Text("Calculate BMI", style: TextStyle(fontSize: 20)),
+              child:
+              const Text("Calculate BMI", style: TextStyle(fontSize: 20)),
             ),
             const SizedBox(height: 20),
             if (bmi > 0)
@@ -362,6 +368,91 @@ class _BmiScreenState extends State<BmiScreen> {
             onChanged: onChange,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ================= AGE CALCULATOR =================
+
+class AgeScreen extends StatefulWidget {
+  const AgeScreen({super.key});
+
+  @override
+  State<AgeScreen> createState() => _AgeScreenState();
+}
+
+class _AgeScreenState extends State<AgeScreen> {
+  DateTime? birthDate;
+  String ageResult = "";
+
+  Future<void> pickDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (date != null) {
+      setState(() => birthDate = date);
+      calculateAge();
+    }
+  }
+
+  void calculateAge() {
+    if (birthDate == null) return;
+
+    final today = DateTime.now();
+    int years = today.year - birthDate!.year;
+    int months = today.month - birthDate!.month;
+    int days = today.day - birthDate!.day;
+
+    if (days < 0) {
+      months--;
+      days += 30;
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    setState(() {
+      ageResult = "$years Years, $months Months, $days Days";
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Age Calculator"),
+        backgroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              onPressed: pickDate,
+              child: const Text("Select Birth Date"),
+            ),
+            const SizedBox(height: 20),
+            if (birthDate != null)
+              Text(
+                "DOB: ${birthDate!.toLocal().toString().split(' ')[0]}",
+                style: const TextStyle(color: Colors.white),
+              ),
+            const SizedBox(height: 20),
+            if (ageResult.isNotEmpty)
+              Text(
+                ageResult,
+                style: const TextStyle(fontSize: 28, color: Colors.green),
+              ),
+          ],
+        ),
       ),
     );
   }
