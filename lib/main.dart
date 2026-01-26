@@ -373,7 +373,7 @@ class _BmiScreenState extends State<BmiScreen> {
   }
 }
 
-// ================= AGE CALCULATOR =================
+// ================= AGE CALCULATOR (MODERN UI) =================
 
 class AgeScreen extends StatefulWidget {
   const AgeScreen({super.key});
@@ -384,7 +384,32 @@ class AgeScreen extends StatefulWidget {
 
 class _AgeScreenState extends State<AgeScreen> {
   DateTime? birthDate;
-  String ageResult = "";
+  String result = "";
+
+  void calculateAge() {
+    if (birthDate == null) return;
+
+    final today = DateTime.now();
+
+    int years = today.year - birthDate!.year;
+    int months = today.month - birthDate!.month;
+    int days = today.day - birthDate!.day;
+
+    if (days < 0) {
+      final prevMonth = DateTime(today.year, today.month, 0);
+      days += prevMonth.day;
+      months--;
+    }
+
+    if (months < 0) {
+      months += 12;
+      years--;
+    }
+
+    setState(() {
+      result = "$years Years, $months Months, $days Days";
+    });
+  }
 
   Future<void> pickDate() async {
     final date = await showDatePicker(
@@ -393,32 +418,11 @@ class _AgeScreenState extends State<AgeScreen> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
+
     if (date != null) {
       setState(() => birthDate = date);
       calculateAge();
     }
-  }
-
-  void calculateAge() {
-    if (birthDate == null) return;
-
-    final today = DateTime.now();
-    int years = today.year - birthDate!.year;
-    int months = today.month - birthDate!.month;
-    int days = today.day - birthDate!.day;
-
-    if (days < 0) {
-      months--;
-      days += 30;
-    }
-    if (months < 0) {
-      years--;
-      months += 12;
-    }
-
-    setState(() {
-      ageResult = "$years Years, $months Months, $days Days";
-    });
   }
 
   @override
@@ -427,29 +431,61 @@ class _AgeScreenState extends State<AgeScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text("Age Calculator"),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.black26,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              onPressed: pickDate,
-              child: const Text("Select Birth Date"),
-            ),
-            const SizedBox(height: 20),
-            if (birthDate != null)
-              Text(
-                "DOB: ${birthDate!.toLocal().toString().split(' ')[0]}",
-                style: const TextStyle(color: Colors.white),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
               ),
-            const SizedBox(height: 20),
-            if (ageResult.isNotEmpty)
-              Text(
-                ageResult,
-                style: const TextStyle(fontSize: 28, color: Colors.green),
+              child: Column(
+                children: [
+                  const Text(
+                    "Select Your Birth Date",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 12),
+                    ),
+                    onPressed: pickDate,
+                    child: const Text("Pick Date"),
+                  ),
+                  const SizedBox(height: 10),
+                  if (birthDate != null)
+                    Text(
+                      "DOB: ${birthDate!.toLocal().toString().split(' ')[0]}",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            if (result.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.orange, Colors.deepOrange],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  result,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
           ],
         ),
